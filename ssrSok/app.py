@@ -28,12 +28,7 @@ def ssrSok():
     nordUR = request.args.get('nordUR')
     ostUR = request.args.get('ostUR')
 
-    bbox = False
-    if nordLL is not None:
-    	if ostLL is not None:
-    		if nordUR is not None:
-    			if ostUR is not None:
-    				bbox = True
+    bbox = all([nordLL, ostLL, nordUR, ostUR])
 
     if bbox:	
     	print """https://ws.geonorge.no/SKWS3Index/ssr/sok?navn=""" + query + """*&nordLL=""" + nordLL + """&ostLL=""" + ostLL + """&nordUR=""" + nordUR + """&ostUR=""" + ostUR + """&antPerSide=9&epsgKode=4258&eksakteForst=true"""

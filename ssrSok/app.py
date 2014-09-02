@@ -8,6 +8,7 @@ import requests
 import json
 import urllib
 
+
 app = Flask(__name__)
 
 # Add zoomvalues to the JSON result
@@ -41,8 +42,8 @@ def ssrSok():
     bbox = all([nordLL, ostLL, nordUR, ostUR])
 
     query_params = {
-        "navn": query,
-        "antPerSide": 9,
+        "navn": query.encode('utf8'),
+        "antPerSide": 1,
         "epsgKode": "4258",
         "eksakteForst": "true"
     }
@@ -56,36 +57,23 @@ def ssrSok():
         })
 
     url = base_url + "?" + urllib.urlencode(query_params)
-    print url
+
     r = requests.get(url, verify=False)
     doc = xmltodict.parse(r.text)
+
     # Add zoom values
     if addZoomValues:
-        i = 0  # counter
-        try:
-            # Check to see if we only get one result
-            ssrId = doc["sokRes"]["stedsnavn"]["ssrId"]
 
-            # convert to regular dict
-            stedsnavn = dict(doc["sokRes"]["stedsnavn"])
-            try:
-                # Check if this navnetype exist in zoomValues
-                stedsnavn["zoom"] = zoomValues[stedsnavn["navnetype"]]
-            except KeyError:
-                # If not set to default zoom level 15
-                stedsnavn["zoom"] = 15
-            doc["sokRes"]["stedsnavn"] = [stedsnavn]  # Always return array
-        except TypeError:
-            for x in doc["sokRes"]["stedsnavn"]:  # every stedsnavn
-                stedsnavn = dict(x)  # convert to regular dict
-                try:
-                    # Check if this navnetype exist in zoomValues
-                    stedsnavn["zoom"] = zoomValues[stedsnavn["navnetype"]]
-                except KeyError:
-                    # If not set to default zoom level 15
-                    stedsnavn["zoom"] = 15
-                doc["sokRes"]["stedsnavn"][i] = stedsnavn
-                i += 1
+        #convert stedsnavn to an array, even when just one dict
+        if isinstance(doc["sokRes"]["stedsnavn"], list):
+            stedsnavn_list = [dict(x) for x in doc["sokRes"]["stedsnavn"]]
+        else:
+            stedsnavn_list = [dict(doc["sokRes"]["stedsnavn"])]
+
+        for stedsnavn in stedsnavn_list:
+            #use 15 as default if not found
+            stedsnavn["zoom"] = zoomValues.get(stedsnavn["navnetype"], 15)
+        doc["sokRes"]["stedsnavn"] = stedsnavn_list
 
     resp = Response(json.dumps(doc), status=200, mimetype='application/json')
     return resp
